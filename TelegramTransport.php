@@ -11,7 +11,6 @@
 
 namespace Symfony\Component\Notifier\Bridge\Telegram;
 
-use Symfony\Component\Notifier\Exception\LogicException;
 use Symfony\Component\Notifier\Exception\TransportException;
 use Symfony\Component\Notifier\Exception\UnsupportedMessageTypeException;
 use Symfony\Component\Notifier\Message\ChatMessage;
@@ -69,12 +68,19 @@ final class TelegramTransport extends AbstractTransport
         }
 
         $options = $message->getOptions()?->toArray() ?? [];
+        $optionsContainer = 'json';
         $options['chat_id'] ??= $message->getRecipientId() ?: $this->chatChannel;
         $options['text'] = $message->getSubject();
 
         if (!isset($options['parse_mode']) || TelegramOptions::PARSE_MODE_MARKDOWN_V2 === $options['parse_mode']) {
             $options['parse_mode'] = TelegramOptions::PARSE_MODE_MARKDOWN_V2;
             $options['text'] = preg_replace('/([_*\[\]()~`>#+\-=|{}.!])/', '\\\\$1', $message->getSubject());
+        }
+
+        if (isset($options['upload_photo'])) {
+            $options['photo'] = fopen($options['upload_photo'], 'r');
+            $optionsContainer = 'body';
+            unset($options['upload_photo']);
         }
 
         if (isset($options['photo'])) {
@@ -85,7 +91,7 @@ final class TelegramTransport extends AbstractTransport
         $endpoint = sprintf('https://%s/bot%s/%s', $this->getEndpoint(), $this->token, $this->getPath($options));
 
         $response = $this->client->request('POST', $endpoint, [
-            'json' => array_filter($options),
+            $optionsContainer => array_filter($options),
         ]);
 
         try {
@@ -116,6 +122,7 @@ final class TelegramTransport extends AbstractTransport
             isset($options['message_id']) => 'editMessageText',
             isset($options['callback_query_id']) => 'answerCallbackQuery',
             isset($options['photo']) => 'sendPhoto',
+            (isset($options['longitude']) && isset($options['latitude'])) => 'sendLocation',
             default => 'sendMessage',
         };
     }

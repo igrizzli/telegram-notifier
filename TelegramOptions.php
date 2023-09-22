@@ -115,6 +115,16 @@ final class TelegramOptions implements MessageOptionsInterface
     /**
      * @return $this
      */
+    public function uploadPhoto(string $path): static
+    {
+        $this->options['upload_photo'] = $path;
+
+        return $this;
+    }
+
+    /**
+     * @return $this
+     */
     public function replyTo(int $messageId): static
     {
         $this->options['reply_to_message_id'] = $messageId;
@@ -153,6 +163,17 @@ final class TelegramOptions implements MessageOptionsInterface
         if ($cacheTime > 0) {
             $this->options['cache_time'] = $cacheTime;
         }
+
+        return $this;
+    }
+
+    /**
+     * @return $this
+     */
+    public function location(float $latitude, float $longitude): static
+    {
+        $this->options['latitude'] = $latitude;
+        $this->options['longitude'] = $longitude;
 
         return $this;
     }
